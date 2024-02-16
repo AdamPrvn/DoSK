@@ -1,0 +1,1 @@
+DoSK stands for Degree of Social Knowledge : the title of my thesis, studying what Sulawesi macaques know about their relationships and those of others, according to hierarchy, kinship and frienship, and how they use this knowledge in ecological contexts.
