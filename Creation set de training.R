@@ -1,4 +1,4 @@
-#clean console, environment & plots
+#clean console, environment & plots (bonjour)
 rm(list = ls())
 cat("\014")
 # Clear all plots
