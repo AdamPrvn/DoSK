@@ -10,7 +10,7 @@ library(readxl)
 library(arrangements)
 library(tidyr)
 library(openxlsx) # pour exporter un tableau dans R en tableau excel
-data <- read_excel("D:/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
+data <- read_excel("C:/Primatologie/TRAVAUX/Degré de savoir social - C.Garcia, J.Duboscq & S.Ballesta/R/DoSK", 
                              sheet = "Feuil2")
 View(data)
 
