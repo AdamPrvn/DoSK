@@ -5,7 +5,7 @@ cat("\014")
 try(dev.off(dev.list()["RStudioGD"]),silent=TRUE)
 try(dev.off(),silent=TRUE)
 
-setwd("D:/Stage M2 CdP/Kinship")
+setwd("C:/Primatologie/TRAVAUX/Degré de savoir social - C.Garcia, J.Duboscq & S.Ballesta/R/DoSK")
 library(readxl)
 library(arrangements)
 library(tidyr)
