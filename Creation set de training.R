@@ -1,45 +1,59 @@
-#clean console, environment & plots 
+#clean console, environment & plots
 rm(list = ls())
 cat("\014")
 # Clear all plots
 try(dev.off(dev.list()["RStudioGD"]),silent=TRUE)
 try(dev.off(),silent=TRUE)
 
-setwd("C:/Primatologie/TRAVAUX/Degré de savoir social - C.Garcia, J.Duboscq & S.Ballesta/R/DoSK")
+install.packages("readxl")
+install.packages("arrangements")
+install.packages("tidyr")
+install.packages("openxlsx")
+
+setwd("D:/Stage M2 CdP/Kinship")
 library(readxl)
 library(arrangements)
 library(tidyr)
 library(openxlsx) # pour exporter un tableau dans R en tableau excel
-data <- read_excel("C:/Primatologie/TRAVAUX/Degré de savoir social - C.Garcia, J.Duboscq & S.Ballesta/R/DoSK", 
+
+# Fannie
+data <- read_excel("C:/Users/Fannie Beurrier/Documents/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
                              sheet = "Feuil2")
+# Adam
+data <- read_excel("C:/Primatologie/TRAVAUX/Degré de savoir social - C.Garcia, J.Duboscq & S.Ballesta/R/DoSK", 
+                   sheet = "Feuil2")
 View(data)
 
 #######################################################
 
-# Sélectionner 3 paires non kin
-n<-3
+##### Pour créer un seul training set à partir d'une sélection de 3 paires de non kin
+## Attention, selon les tirages fait, le code peut parfois ne pas aboutir donc il faut le relancer pour tomber sur un bon tirage (comme au tarot ^^)
+
+n<-3 # car on veut n paires de kin VS n paires de nk
 kinship_0 <- subset(data, kinship == 0)
-sample_kinship_0 <- kinship_0[sample(nrow(kinship_0), n), ]
 kinship_1 <- subset(data, kinship == 1)
-individuals_kinship_0 <- sort(unique(c(sample_kinship_0$id1, sample_kinship_0$id2)))
 
-# Sélectionner toutes les paires où kinship est égal à 1 et où les individus de kinship 0 sont présents dans id1 ou id2
+## Etape 1 : Tirer 3 paires non kin au hasard
+sample_kinship_0 <- kinship_0[sample(nrow(kinship_0), n), ] # tirage de n paires de nk au hasard
+individuals_kinship_0 <- sort(unique(c(sample_kinship_0$id1, sample_kinship_0$id2))) # liste unique des individus nk tirés au hasard
+# Sélectionner toutes les paires de kin (matching pairs) (avec kinship = 1) et où les individus de kinship 0 sont présents dans id1 ou id2
 matching_pairs_kinship_1 <- subset(kinship_1, id1 %in% individuals_kinship_0 & id2 %in% individuals_kinship_0)
-individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2)))
+individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2))) # liste unique des individus des matching pairs de kin
 
-# Tant que le nombre de lignes de matching_pairs_kinship_1 est inférieur à 3
+# Tant que le nombre de lignes de matching_pairs_kinship_1 est inférieur à n, on retire les paires de nk (on refait l'étape 1)
 while(nrow(matching_pairs_kinship_1) < n || !identical(individuals_kinship_0, individuals_kinship_1)) {
-  # Sélectionner aléatoirement 3 paires où kinship est égal à 0
+  # Tirer aléatoirement n paires de nk (avec kinship = 0)
   sample_kinship_0 <- kinship_0[sample(nrow(kinship_0), n), ]
   individuals_kinship_0 <- sort(unique(c(sample_kinship_0$id1, sample_kinship_0$id2)))
-  matching_pairs_kinship_1 <- subset(kinship_1, id1 %in% individuals_kinship_0 & id2 %in% individuals_kinship_0)
-  individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2)))
+  matching_pairs_kinship_1 <- subset(kinship_1, id1 %in% individuals_kinship_0 & id2 %in% individuals_kinship_0) # Sélectionner toutes les paires de kin (matching pairs) 
+  individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2))) # liste unique des individus des matching pairs de kin
   # Si le nombre de lignes de matching_pairs_kinship_1 est toujours inférieur à 3, répéter le processus
 }
-individuals_kinship_0 <- sort(unique(c(sample_kinship_0$id1, sample_kinship_0$id2)))
-individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2)))
+individuals_kinship_0 <- sort(unique(c(sample_kinship_0$id1, sample_kinship_0$id2))) # liste unique des individus des matching pairs de kin
+individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2))) # liste unique des individus des matching pairs de kin
 
-tot_individuals_kinship_1 <- list(individuals=c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2))
+# quand le nombre d'individus de kin (des matching pairs) est < 2n (si c'est = 2n, on doit garder toutes les paires)
+tot_individuals_kinship_1 <- list(individuals=c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2)) # liste unique des individus des matching pairs de kin (sous forme de liste vraiment)
 # Compter le nombre d'occurrences de chaque individu dans la liste tot_individuals_kinship_1
 ind_counts <- table(tot_individuals_kinship_1$individuals)
 # Marquer "option" dans matching_pairs_kinship_1$possibility lorsque id1 et id2 apparaissent au moins deux fois dans la liste tot_individuals_kinship_1
@@ -51,13 +65,17 @@ print(matching_pairs_kinship_1)
 
 no_option_kinship_1 <- subset(matching_pairs_kinship_1, possibility == "no option")
 option_kinship_1 <- subset(matching_pairs_kinship_1, possibility == "option")
-(l<-nrow(option_kinship_1))
-sample_option_kinship_1 <- option_kinship_1[sample(nrow(option_kinship_1), l-k), ]
-sample_kinship_1 <- rbind(no_option_kinship_1, sample_option_kinship_1)
+(l<-nrow(option_kinship_1)) # nombre de matching pairs optionnelles
 
-individuals_sample_kinship_1 <- sort(unique(c(sample_kinship_1$id1, sample_kinship_1$id2)))
+## Etape 2 : Choisir les matching pairs de kin
+sample_option_kinship_1 <- option_kinship_1[sample(nrow(option_kinship_1), l-k), ] # parmis les paires optionnelles, on tire l-k paires au hasard
+# l-k correspond au nombre de paires optionnelles à conserver pour avoir un total de n paires de matching pairs (donc c'est le nombre de matching pairs optionnelles moins le nombre de paires à retirer)
+sample_kinship_1 <- rbind(no_option_kinship_1, sample_option_kinship_1) # liaison des (l-k) matching pairs optionnelles tirées avec les matching pairs obligatoires (le nombre de lignes doit être égal à n)
+# on obtient donc l'ensemble des matching pairs qu'on conserve
 
-# Tant que les individus dans kin et nonkin ne sont pas identiques
+individuals_sample_kinship_1 <- sort(unique(c(sample_kinship_1$id1, sample_kinship_1$id2))) # liste unique des individus des matching pairs retenues
+
+# Tant que les individus dans kin et nonkin ne sont pas identiques, on refait l'étape 2
 while(!identical(individuals_kinship_0, individuals_sample_kinship_1)) {
   sample_option_kinship_1 <- option_kinship_1[sample(nrow(option_kinship_1), l-k), ]
   sample_kinship_1 <- rbind(no_option_kinship_1, sample_option_kinship_1)
@@ -66,11 +84,17 @@ while(!identical(individuals_kinship_0, individuals_sample_kinship_1)) {
 }
 
 sample_kinship_0$possibility<-"no option"
-training_set <- rbind(sample_kinship_0, sample_kinship_1) # set de training
+training_set <- rbind(sample_kinship_0, sample_kinship_1) # on combine les échantillons des nk et des matching pairs de kin retenus
+# on obtient un set de training
 View(training_set)
+
+write.xlsx(training_set, "D:/Stage M2 CdP/Kinship/Training sets/Training_Set_test2.xlsx") # exporte le training set qui vient d'être généré
 
 
 #######################################################
+
+##### Pour créer un seul training set à partir d'une sélection de 3 paires de kin
+# C'est le même code que précédemment mais en inversant les kin et nk
 
 # Sélectionner 3 paires kin
 n<-3
@@ -122,14 +146,12 @@ sample_kinship_1$possibility<-"no option"
 training_set <- rbind(sample_kinship_1, sample_kinship_0) # set de training
 View(training_set)
 
-############################################################
-
 write.xlsx(training_set, "D:/Stage M2 CdP/Kinship/Training sets/Training_Set_test2.xlsx") # exporte le training set qui vient d'être généré
 
-training_set <- read_excel("D:/Stage M2 CdP/Kinship/Training sets/Training_Set_test2.xlsx")
-View(training_set)
+############################################################
 
-#### Travail sur les individus du training set
+#### Travail sur les individus du training set généré
+## NON ABOUTI
 tot_ind_kinship_1 <- list(id=c(sample_kinship_1$id1, sample_kinship_1$id2))
 tot_ind_kinship_0 <- list(id=c(sample_kinship_0$id1, sample_kinship_0$id2))
 ind_counts_kinship_0 <- table(tot_ind_kinship_0$id)
@@ -156,19 +178,23 @@ View(tab_tot_training_sets)
 
 write.xlsx(tab_training_sets, "D:/Stage M2 CdP/Kinship/tab_training_sets.xlsx") # exporte le tableau des training sets
 
-###############################################################################
-# Là, j'essaye de trouver un moyen pour que R me sorte tous les training sets possibles
 
-data <- read_excel("D:/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
+
+###############################################################################
+##### Création de tous les training sets possibles et utilisables
+
+# Fannie
+data <- read_excel("C:/Users/Fannie Beurrier/Documents/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
                    sheet = "Feuil2")
+View(data)
 
 ### 1. Cleaning et vérifications
-n=3 # on veut n paire de kin VS n paires de nk
-data$possibility<-NA # création de la variable possibility qui servira plus tard
-data$pair_id <- apply(data[1:2], 1, function(x) paste(x, collapse = ";")) # création de la variable pair_id
+n=3 # on veut n paires de kin VS n paires de non kin (abrégé nk)
+data$possibility<-NA # création de la variable possibility qui servira plus tard à déterminer les paires de kin qui seront nécessairement à conserver dans le training set
+data$pair_id <- apply(data[1:2], 1, function(x) paste(x, collapse = ";")) # création de la variable pair_id pour attribuer une identité à la paire
 kinship_1 <- subset(data, kinship == 1)
 kinship_0 <- subset(data, kinship == 0) # séparation du dataset en un set regroupant toutes les paires nk et un autre avec toutes les paires kin
-kinship_0$possibility<-"no option" # dans le subset nk, on remplit la var possibility avec "no option" car c'est à partir des nk qu'on regarde les set de kin qui matchent
+kinship_0$possibility<-"no option" # dans le subset nk, on remplit la var possibility avec "no option" car c'est à partir des paires de nk qu'on regarde les paires de kin qui matchent
 # pair_kinship_0<-as.vector(kinship_0$pair_id) # donne la liste de toutes les paires de nk
 # pair_kinship_1<-as.vector(kinship_1$pair_id) # donne la liste de toutes les paires de kin
 
@@ -180,14 +206,14 @@ identical(individuals_kinship_0, individuals_kinship_1)
 
 ### 2. Création de tous les dataframes de combinaisons de paires de nk possibles
 
-## on fait tous les tirages de n paires de nonkin possibles
-# ça nous permet ensuite de créer les training sets autour de ces tirages
-n_combinaisons_kinship_0 <- combinations(kinship_0$pair_id, k=n)
+## on fait toutes les combinaisons de n paires de nonkin possibles
+# ça nous permettra ensuite de créer les training sets autour de ces combinaisons de nk
+n_combinaisons_kinship_0 <- combinations(kinship_0$pair_id, k=n) 
 names<-paste0("pair",1:n)
 colnames(n_combinaisons_kinship_0) <- c(names)
 View(n_combinaisons_kinship_0)
 
-## on crée autant de dataframes que de tirages de n paires de nonkin
+## on crée autant de dataframes que de combinaisons de n paires de nonkin
 # Création d'une fonction pour transformer une ligne en un dataframe (type id1, id2, kinship, kindegree, pair_id)
 transformer_en_dataframe <- function(row) {
   df<-data.frame(pair_id = row, stringsAsFactors = FALSE)
@@ -203,19 +229,19 @@ transformer_en_dataframe <- function(row) {
 nouveaux_dataframes <- lapply(1:nrow(n_combinaisons_kinship_0), function(i) transformer_en_dataframe(n_combinaisons_kinship_0[i, ]))
 View(nouveaux_dataframes)
 
-# Remplissage des tableaux de combinaisons de paires de nonkin (type id1, id2, kinship, kindegree, pair_id)
+# Remplissage des tableaux de combinaisons de paires de nonkin (type id1, id2, kinship, kindegree, pair_id) à partir des données initiales
 # prend un peu de temps
 for(i in 1:length(nouveaux_dataframes)) {
   for(x in 1:nrow(nouveaux_dataframes[[i]])) {
     pair <- nouveaux_dataframes[[i]]$pair_id[x]
-    loc <- which(nouveaux_dataframes[[i]]$pair_id[x]==kinship_0$pair_id)# donne la ligne dans kinship_0 où la pair_id est la même
+    loc <- which(nouveaux_dataframes[[i]]$pair_id[x]==kinship_0$pair_id)# donne la ligne dans kinship_0 où la pair_id est la même que la ligne x du nouveaux_dataframes i
     if(pair == kinship_0$pair_id[loc]) {
-      kinship <- kinship_0$kinship[kinship_0$pair_id == pair]
+      kinship <- kinship_0$kinship[kinship_0$pair_id == pair] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
       kindegree <- kinship_0$kindegree[kinship_0$pair_id == pair]
       possibility <- kinship_0$possibility[kinship_0$pair_id == pair]
       id1 <- kinship_0$id1[kinship_0$pair_id == pair]
       id2 <- kinship_0$id2[kinship_0$pair_id == pair]
-      nouveaux_dataframes[[i]]$kinship[x] <- kinship
+      nouveaux_dataframes[[i]]$kinship[x] <- kinship # pour chaque variable, restitution des valeurs des objets définis dans le nouveaux_dataframes i à la ligne x
       nouveaux_dataframes[[i]]$kindegree[x] <- kindegree
       nouveaux_dataframes[[i]]$possibility[x] <- possibility
       nouveaux_dataframes[[i]]$id1[x] <- id1
@@ -227,36 +253,40 @@ for(i in 1:length(nouveaux_dataframes)) {
 ### 3. Création de tous les training sets utilisables
 
 ## 3.1 Sélection de toutes les paires de kin compatibles
-# contrainte 1: les individus présents dans les paires nk doivent être présentes dans id1 et id2 des paires de kin 
-# contrainte 2: tous les individus kin doivent être présent dans nonkin
+# contrainte 1 : à l'échelle de la paire de kin, les individus (id1 ET id2) des paires de kin doivent chacun être présents dans les individus nk du dataframe
+# contrainte 2 : à l'échelle de l'ensemble des combinaisons de paires de kin, tous les individus kin doivent être présent dans nonkin, autrement dit, la liste des nk doit être identique à celle des kin
+# prend beaucoup de temps
 for(i in 1:length(nouveaux_dataframes)) {
-  individuals_kinship_0 <- sort(unique(c(nouveaux_dataframes[[i]]$id1, nouveaux_dataframes[[i]]$id2)))
-  matching_pairs_kinship_1 <- subset(kinship_1, id1 %in% individuals_kinship_0 & id2 %in% individuals_kinship_0)
-  individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2)))
-  if(nrow(matching_pairs_kinship_1) >= n & identical(individuals_kinship_0, individuals_kinship_1)) {
+  individuals_kinship_0 <- sort(unique(c(nouveaux_dataframes[[i]]$id1, nouveaux_dataframes[[i]]$id2))) # pour le nouveaux_dataframes i, c'est la liste des individus nk présents
+  matching_pairs_kinship_1 <- subset(kinship_1, id1 %in% individuals_kinship_0 & id2 %in% individuals_kinship_0) # donne toutes les combinaisons des paires de kin où les deux individus (id1 ET id2) sont présents dans la liste de nk définie au-dessus
+  individuals_kinship_1 <- sort(unique(c(matching_pairs_kinship_1$id1, matching_pairs_kinship_1$id2))) # pour les paires de kin matchant, c'est la liste des individus kin présents
+  if(nrow(matching_pairs_kinship_1) >= n & identical(individuals_kinship_0, individuals_kinship_1)) { # si la liste des kin et des nk est identique ET s'il y a au moins n paires de kin qui matchent, on combine le dataframe des paires de nk avec celui des paires de kin qui matchent
     nouveaux_dataframes[[i]] <- rbind(nouveaux_dataframes[[i]], matching_pairs_kinship_1)
-  } # on a relié les paires de kin correspondantes que si il y a au moins n paires de kin correspondantes
-}   # et si tous les individus dans nk sont présents dans kin
-# Dans 'nouveaux_dataframes' on obtient les tableaux des nk et les paires de kin combinés (si les conditions sont remplies)
-# !!! attention : 'nouveaux_dataframes' contient encore les tableaux de nk où les paires de kin ne correspondaient pas aux contraintes, mais les deux tableaux n'ont pas été reliés (donc ils font n lignes exactement)
-# donc on a des dataframes de n lignes et des dataframes de >= 2n lignes
+  } 
+} 
+# Dans 'nouveaux_dataframes' on obtient les tableaux des nk et les paires de kin combinés (pour les dataframes qui remplissent les conditions)
+# !!! attention : 'nouveaux_dataframes' contient encore les tableaux de nk où les paires de kin ne correspondaient pas aux contraintes, mais les deux tableaux n'ont pas été combinés (donc ils font n lignes exactement)
+# donc on a des dataframes de n lignes (inutilisables) et des dataframes de >= 2n lignes (potentiellement utilisables)
+
 
 ## 3.2 Sélection des df utilisables pour créer les training sets
 # contrainte 1 : on ne veut que les df avec au moins 2n lignes
-# contrainte 2 : tous les individus dans nk doivent être présents dans kin
+# contrainte 2 : tous les individus dans nk doivent être présents dans kin (normalement c'est déjà vérifié juste au-dessus)
 
 # pour compter et voir tous les dataframes dont le nombre de lignes est = n, donc inutilisables
+# OSEF, c'est juste indicatif
 count_dataframes_n <- sum(sapply(nouveaux_dataframes, function(df) nrow(df) == n))
 print(count_dataframes_n)
-for(i in 1:length(nouveaux_dataframes)) {
+for(i in 1:length(nouveaux_dataframes)) { # donne la liste de tous les df avec un nombre de lignes == n
   if(nrow(nouveaux_dataframes[[i]]) == n) {
     print(i)
   }
 } 
 # pour compter et voir tous les dataframes dont le nombre de lignes est >= 2n, donc utilisables
+# OSEF, c'est juste indicatif
 count_dataframes_2n <- sum(sapply(nouveaux_dataframes, function(df) nrow(df) >= 2*n))
 print(count_dataframes_2n)
-for(i in 1:length(nouveaux_dataframes)) {
+for(i in 1:length(nouveaux_dataframes)) { # donne la liste de tous les df avec un nombre de lignes >= 2n
   if(nrow(nouveaux_dataframes[[i]]) >= 2*n) {
     print(i)
   }
@@ -267,11 +297,13 @@ View(dataframes_possibles_pile) # = 2n
 dataframes_possibles_plus <- Filter(function(df) nrow(df) > 2*n, nouveaux_dataframes)
 View(dataframes_possibles_plus) # > 2n
 
-# Pour tous les dataframes = 2n, les paires de kin ne sont pas optionnelles
+# Pour tous les dataframes = 2n, les paires de kin ne sont pas optionnelles car on veut n paires de kin VS n paires de nk
+# Donc on remplit la colonne "possibility" avec "no option"
 for(i in 1:length(dataframes_possibles_pile)) {
   dataframes_possibles_pile[[i]]$possibility<-"no option"
 }
-# pour ces df, on vérifie que les ind kin et nk sont identiques
+
+# Par précaution (pas obligatoire car on l'a déjà fait avant), pour les df 'pile', on vérifie que les ind kin et nk sont bien identiques
 # on demande la liste des dataframes qui seront retirés car les individus de k0 et k1 ne sont pas identiques
 indices_a_retirer <- c()
 for(i in 1:length(dataframes_possibles_pile)) {
@@ -283,8 +315,7 @@ for(i in 1:length(dataframes_possibles_pile)) {
     indices_a_retirer <- c(indices_a_retirer, i)
   }
 }
-# Affiche les indices des dataframes à retirer
-print(indices_a_retirer) # si la réponse est "NULL" alors tous les df sont ok
+print(indices_a_retirer) # Affiche les indices des dataframes à retirer : si la réponse est "NULL" alors tous les df sont ok
 
 
 ## 3.3 Création des trainings sets pour les df > 2n
@@ -300,67 +331,72 @@ for(i in 1:length(dataframes_possibles_plus)) {
     ind <- c(ind, df_kinship_1$id1[x],df_kinship_1$id2[x])
   }
   ind_list <- list(individuals=ind)
-  ind_counts <- table(ind_list$individuals)
+  ind_counts <- table(ind_list$individuals) # on compte le nombre de fois que chaque individu est présent en tant que kin
   df_ind_counts <- as.data.frame(ind_counts)
   colnames(df_ind_counts) <- c("ID", "Freq")
   for(y in 1:nrow(df_kinship_1)){
-    loc1 <- which(df_kinship_1$id1[y]==df_ind_counts$ID)# donne la ligne dans df_kinship_1 où id1 correspond à ID
-    loc2 <- which(df_kinship_1$id2[y]==df_ind_counts$ID)# donne la ligne dans df_kinship_1 où id2 correspond à ID
+    loc1 <- which(df_kinship_1$id1[y]==df_ind_counts$ID)# donne la ligne dans df_kinship_1 où id1 correspond à ID dans df_ind_counts
+    loc2 <- which(df_kinship_1$id2[y]==df_ind_counts$ID)# donne la ligne dans df_kinship_1 où id2 correspond à ID dans df_ind_counts
     df_kinship_1$possibility[y] <- ifelse(df_ind_counts$Freq[loc1] > 1 & df_ind_counts$Freq[loc2] > 1, "option", "no option")
-  } # possibility = no option, si id1 et id2 ne sont présents qu'une fois dans la liste des kin
+  } # possibility = "no option", si id1 ou id2 ne sont présents qu'une fois dans la liste des kin
   dataframes_possibles_plus[[i]] <- rbind(df_kinship_0, df_kinship_1) # on relie pour que la colonne "possibility" soit complète
 }
 
-# tous les dataframes ne contenant aucune option sont inutilisables (car > 2n)
-# pour obtenir tous les dataframes ne contenant aucune option
+# tous les dataframes contenant plus de 2n "no option" sont inutilisables (car > 2n)
+
+# pour obtenir tous les dataframes contenant pile 2n "no option" (donc utilisables)
 indices <- c()
 for (i in seq_along(dataframes_possibles_plus)) {
-  count_option <- sum(dataframes_possibles_plus[[i]]$possibility == "option")
-  if (count_option == 0) {
+  count_no <- sum(dataframes_possibles_plus[[i]]$possibility == "no option")
+  if (count_no == 2*n) {
     indices <- c(indices, i)
   }
 }
-list_df_0options <- list(indices) # liste des df inutilisables
-dataframes_0options <- dataframes_possibles_plus[indices] # donne l'ensemble des df inutilisables 
+list_df_2n_no <- list(indices) # liste des df >2n contenant 2n "no option"
+df_2n_no_pile <- dataframes_possibles_plus[indices] # convertis en dataframes
+# il faut supprimer les lignes "option" pour chacun de ces dataframes
+for(i in seq_along(df_2n_no_pile)) {
+  df_2n_no_pile[[i]] <- subset(df_2n_no_pile[[i]], possibility != "option")
+}
+View(df_2n_no_pile)
 
-# pour obtenir tous les dataframes contenant au moins 1 option (donc utilisables)
+# pour obtenir tous les dataframes contenant moins de 2n "no option" (donc utilisables)
 indices <- c()
 for (i in seq_along(dataframes_possibles_plus)) {
-  count_option <- sum(dataframes_possibles_plus[[i]]$possibility == "option")
-  if (count_option >= 1) {
+  count_no <- sum(dataframes_possibles_plus[[i]]$possibility == "no option")
+  if (count_no < 2*n) {
     indices <- c(indices, i)
   }
 }
-list_df_1options <- list(indices) # liste des df utilisables
-dataframes_1options <- dataframes_possibles_plus[indices] # c'est cette liste qu'on va conserver
+list_df_2n_no_moins <- list(indices) # liste des df >2n contenant moins de 2n "no option"
+df_2n_no_moins <- dataframes_possibles_plus[indices] # convertis en dataframes
+View(df_2n_no_moins)
 
-# 
+## Pour chaque df_2n_no_moins, on fait toutes les combinaisons de n paires de kin possibles 
 linked_all <- list()
-for(y in 1:length(dataframes_1options)) {
-  dataframes_1options_o <- subset(dataframes_1options[[y]], possibility == "option")
-  dataframes_1options_no <- subset(dataframes_1options[[y]], possibility == "no option") 
+for(y in 1:length(df_2n_no_moins)) {
+  df_2n_no_moins_option <- subset(df_2n_no_moins[[y]], possibility == "option")
+  df_2n_no_moins_nooption <- subset(df_2n_no_moins[[y]], possibility == "no option") 
   # on va travailler que sur les "option", pcq on garde tous les "no option"
-  (m<-nrow(dataframes_1options[[y]])) # nombre de lignes du df
+  (m<-nrow(df_2n_no_moins[[y]])) # nombre de lignes du df
   (k<-m-(2*n)) # nombre de lignes à retirer pour avoir 2n lignes
-  (l<-nrow(dataframes_1options_o)) # nombre de paires optionnelles
+  (l<-nrow(df_2n_no_moins_option)) # nombre de paires optionnelles
   (q<-l-k) # nombre de paires optionnelles à conserver
   # on fait toutes les combinaisons de q paires de kin optionnelles possibles
-  combinaisons_options <- combinations(dataframes_1options_o$pair_id, k=q)
-  #names<-paste0("pair",1:q)
-  #colnames(n_combinaisons_kinship_0) <- c(names)
+  combinaisons_options <- combinations(df_2n_no_moins_option$pair_id, k=q)
   # transformation en tableau
   new_df_o <- lapply(1:nrow(combinaisons_options), function(i) transformer_en_dataframe(combinaisons_options[i, ]))
   # on remplit tous les tableaux (type id1, id2, kinship, kindegree, pair_id)
   for(i in 1:length(new_df_o)) {
     for(x in 1:nrow(new_df_o[[i]])) {
       pair <- new_df_o[[i]]$pair_id[x]
-      loc <- which(new_df_o[[i]]$pair_id[x]==dataframes_1options_o$pair_id)# donne la ligne dans dataframes_1options_o où la pair_id est la même
-      if(pair == dataframes_1options_o$pair_id[loc]) {
-        kinship <- dataframes_1options_o$kinship[dataframes_1options_o$pair_id == pair]
-        kindegree <- dataframes_1options_o$kindegree[dataframes_1options_o$pair_id == pair]
-        possibility <- dataframes_1options_o$possibility[dataframes_1options_o$pair_id == pair]
-        id1 <- dataframes_1options_o$id1[dataframes_1options_o$pair_id == pair]
-        id2 <- dataframes_1options_o$id2[dataframes_1options_o$pair_id == pair]
+      loc <- which(new_df_o[[i]]$pair_id[x]==df_2n_no_moins_option$pair_id)# donne la ligne dans df_2n_no_moins_option où la pair_id est la même
+      if(pair == df_2n_no_moins_option$pair_id[loc]) {
+        kinship <- df_2n_no_moins_option$kinship[df_2n_no_moins_option$pair_id == pair]
+        kindegree <- df_2n_no_moins_option$kindegree[df_2n_no_moins_option$pair_id == pair]
+        possibility <- df_2n_no_moins_option$possibility[df_2n_no_moins_option$pair_id == pair]
+        id1 <- df_2n_no_moins_option$id1[df_2n_no_moins_option$pair_id == pair]
+        id2 <- df_2n_no_moins_option$id2[df_2n_no_moins_option$pair_id == pair]
         new_df_o[[i]]$kinship[x] <- kinship
         new_df_o[[i]]$kindegree[x] <- kindegree
         new_df_o[[i]]$possibility[x] <- possibility
@@ -372,7 +408,7 @@ for(y in 1:length(dataframes_1options)) {
   # on lie le tableau "new_df_o[[i]]" avec le tableau qui ne contenait plus que les "no option"
   linked_dataframes <- list()
   for (df in new_df_o) {
-    linked_df <- rbind(dataframes_1options_no, df)
+    linked_df <- rbind(df_2n_no_moins_nooption, df)
     linked_dataframes <- c(linked_dataframes, list(linked_df))
     }
   linked_all <- c(linked_all, list(linked_dataframes))
@@ -380,52 +416,37 @@ for(y in 1:length(dataframes_1options)) {
 # !!! attention : toutes les combinaisons des kin optionnels ayant été fait, dans certains cas, certains individus nk ne sont plus présents dans les kin.
 # donc il faut re-sélectionner uniquement les df où les nk sont présents dans les kin
 
-# Liste les dataframes à retirér car les individus de k0 et k1 ne sont pas identiques
-indices_a_retirer <- list()
-for(i in 1:length(linked_all)) {
-  for(df in linked_all[[i]]){
-    k0 <- subset(df, kinship == "0")
-    k1 <- subset(df, kinship == "1")
-    ind_k0 <- sort(unique(c(k0$id1, k0$id2)))
-    ind_k1 <- sort(unique(c(k1$id1, k1$id2)))   
-    if (!identical(ind_k0, ind_k1)) {
-      indices_a_retirer[[length(indices_a_retirer) + 1]] <- i
-      break  # Sortir de la boucle interne dès qu'un dataframe ne respecte pas la condition
-    }
-  }
+# on commence par dé-lister linked_all
+linked_all_simple <- list()
+for (i in 1:length(linked_all)) {
+  linked_all_simple <- c(linked_all_simple, linked_all[[i]])
 }
-print(indices_a_retirer)
-# on retire les df concernés
+View(linked_all_simple)
 
-# indices_a_retirer <- unlist(indices_a_retirer)
-# linked_all_filtre <- linked_all[-indices_a_retirer] # là ça retire déjà les dataframes à retirer
-# View(linked_all_filtre)
-
-## OU 
-linked_all <- lapply(linked_all, function(df_list) {
-  Filter(function(df) {
-    k0 <- subset(df, kinship == "0")
-    k1 <- subset(df, kinship == "1")
-    ind_k0 <- sort(unique(c(k0$id1, k0$id2)))
-    ind_k1 <- sort(unique(c(k1$id1, k1$id2)))
-    identical(ind_k0, ind_k1)
-  }, df_list)
+## Retirer les df où la liste des individus kin est différente de celle des nk
+# Création d'une fonction pour retirer le df quand les deux listes ne sont pas identiques
+filter_and_check<-function(df) {
+  k0 <- subset(df, kinship == "0")
+  k1 <- subset(df, kinship == "1")
+  ind_k0 <- sort(unique(c(k0$id1, k0$id2)))
+  ind_k1 <- sort(unique(c(k1$id1, k1$id2)))
+  identical(ind_k0, ind_k1)
+}
+# Application de la fonction
+filtered_linked_all_simple <- lapply(linked_all_simple, function(df) {
+  if(filter_and_check(df)) {
+    return(df)
+  }
 })
-linked_all <- linked_all[sapply(linked_all, length) > 0] # Retirer les listes vides (si nécessaire)
+filtered_linked_all_simple <- filtered_linked_all_simple[!sapply(filtered_linked_all_simple, is.null)] # Supprimer les éléments vides de la liste
+# je ne sais pas comment vérifier s'il a bien fait ça
 
 
 ## 3.4 Regroupement de tous les training set utilisables
 
-# on veut maintenant regrouper dataframes_possibles_pile avec linked_all
-# donc on doit d'abord dé-lister linked_all
-tous_dataframes <- list()
-for (i in 1:length(linked_all)) {
-  tous_dataframes <- c(tous_dataframes, linked_all[[i]])
-}
-View(tous_dataframes)
-
-# on regroupe tous les training sets utilisables
-all_training_sets <- c(dataframes_possibles_pile,tous_dataframes) # ce sont tous les training sets utilisables
+# on regroupe tous les training sets utilisables 
+# Donc: les df qui étaient à 2n pile, les df >2n qui avaient 2n "no option" et les df >2n avec moins de 2n "no option" après modification et sélection
+all_training_sets <- c(dataframes_possibles_pile, df_2n_no_pile, filtered_linked_all_simple) # ce sont tous les training sets utilisables
 
 # on exporte tous les training sets
 chemin <- "D:/Stage M2 CdP/Kinship/Training sets/"
