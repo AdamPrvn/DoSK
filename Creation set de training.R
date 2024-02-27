@@ -25,8 +25,15 @@ data <- read_excel("C:/Primatologie/TRAVAUX/Degré de savoir social - C.Garcia, 
 View(data)
 
 #######################################################
+# Ce code est pour l'instant divisé en 4 parties :
+# 1ere partie : Création d'un seul training set à partir d'une sélection de 3 paires de non kin
+# 2eme partie : Création d'un seul training set à partir d'une sélection de 3 paires de kin
+# 3eme partie : Tentative d'évaluation de la qualité du training set, mais loin d'être aboutit
+# 4eme partie : Création de tous les training sets possibles et utilisables
 
-##### Pour créer un seul training set à partir d'une sélection de 3 paires de non kin
+#######################################################
+##### Partie 1 : Création d'un seul training set à partir d'une sélection de 3 paires de non kin
+
 ## Attention, selon les tirages fait, le code peut parfois ne pas aboutir donc il faut le relancer pour tomber sur un bon tirage (comme au tarot ^^)
 
 n<-3 # car on veut n paires de kin VS n paires de nk
@@ -92,9 +99,9 @@ write.xlsx(training_set, "D:/Stage M2 CdP/Kinship/Training sets/Training_Set_tes
 
 
 #######################################################
+##### Partie 2 : Création d'un seul training set à partir d'une sélection de 3 paires de kin
 
-##### Pour créer un seul training set à partir d'une sélection de 3 paires de kin
-# C'est le même code que précédemment mais en inversant les kin et nk
+## C'est le même code que précédemment mais en inversant les kin et nk
 
 # Sélectionner 3 paires kin
 n<-3
@@ -149,9 +156,11 @@ View(training_set)
 write.xlsx(training_set, "D:/Stage M2 CdP/Kinship/Training sets/Training_Set_test2.xlsx") # exporte le training set qui vient d'être généré
 
 ############################################################
+##### Partie 3 : Tentative d'évaluation de la qualité du training set, mais loin d'être aboutit
 
-#### Travail sur les individus du training set généré
+### Travail sur les individus du training set généré
 ## NON ABOUTI
+
 tot_ind_kinship_1 <- list(id=c(sample_kinship_1$id1, sample_kinship_1$id2))
 tot_ind_kinship_0 <- list(id=c(sample_kinship_0$id1, sample_kinship_0$id2))
 ind_counts_kinship_0 <- table(tot_ind_kinship_0$id)
@@ -181,7 +190,7 @@ write.xlsx(tab_training_sets, "D:/Stage M2 CdP/Kinship/tab_training_sets.xlsx") 
 
 
 ###############################################################################
-##### Création de tous les training sets possibles et utilisables
+##### Partie 4 : Création de tous les training sets possibles et utilisables
 
 # Fannie
 data <- read_excel("C:/Users/Fannie Beurrier/Documents/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
