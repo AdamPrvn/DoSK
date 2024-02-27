@@ -10,7 +10,6 @@ install.packages("arrangements")
 install.packages("tidyr")
 install.packages("openxlsx")
 
-setwd("D:/Stage M2 CdP/Kinship")
 library(readxl)
 library(arrangements)
 library(tidyr)
@@ -18,7 +17,7 @@ library(openxlsx) # pour exporter un tableau dans R en tableau excel
 
 # Fannie
 data <- read_excel("C:/Users/Fannie Beurrier/Documents/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
-                             sheet = "Feuil2")
+                   sheet = "Feuil2")
 # Adam
 data <- read_excel("C:/Primatologie/TRAVAUX/Degré de savoir social - C.Garcia, J.Duboscq & S.Ballesta/R/DoSK", 
                    sheet = "Feuil2")
@@ -196,6 +195,9 @@ write.xlsx(tab_training_sets, "D:/Stage M2 CdP/Kinship/tab_training_sets.xlsx") 
 data <- read_excel("C:/Users/Fannie Beurrier/Documents/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
                    sheet = "Feuil2")
 View(data)
+
+## Attention : la variable "kindegree" ne correspond pas au réel kindegree des paires, il permet de différencier les liens de parenté de la facon suivante:
+# 1 = mother-child ; 0.5 = full-siblings ; 0.25 = maternal half-siblings
 
 ### 1. Cleaning et vérifications
 n=3 # on veut n paires de kin VS n paires de non kin (abrégé nk)
@@ -411,21 +413,21 @@ for(y in 1:length(df_2n_no_moins)) {
         new_df_o[[i]]$possibility[x] <- possibility
         new_df_o[[i]]$id1[x] <- id1
         new_df_o[[i]]$id2[x] <- id2
-        }
       }
     }
+  }
   # on lie le tableau "new_df_o[[i]]" avec le tableau qui ne contenait plus que les "no option"
   linked_dataframes <- list()
   for (df in new_df_o) {
     linked_df <- rbind(df_2n_no_moins_nooption, df)
     linked_dataframes <- c(linked_dataframes, list(linked_df))
-    }
+  }
   linked_all <- c(linked_all, list(linked_dataframes))
 } # on obtient une liste "linked_all" regroupant les listes "linked_dataframes" des dataframes
 # !!! attention : toutes les combinaisons des kin optionnels ayant été fait, dans certains cas, certains individus nk ne sont plus présents dans les kin.
 # donc il faut re-sélectionner uniquement les df où les nk sont présents dans les kin
 
-# on commence par dé-lister linked_all
+# on commence par dé-lister linked_all (car c'est une liste de liste)
 linked_all_simple <- list()
 for (i in 1:length(linked_all)) {
   linked_all_simple <- c(linked_all_simple, linked_all[[i]])
@@ -457,12 +459,34 @@ filtered_linked_all_simple <- filtered_linked_all_simple[!sapply(filtered_linked
 # Donc: les df qui étaient à 2n pile, les df >2n qui avaient 2n "no option" et les df >2n avec moins de 2n "no option" après modification et sélection
 all_training_sets <- c(dataframes_possibles_pile, df_2n_no_pile, filtered_linked_all_simple) # ce sont tous les training sets utilisables
 
-# on exporte tous les training sets
+
+## 3.5 Sélection des training sets selon les critères de kindegree
+# contrainte : on veut uniquement les training sets avec les 3 kindegree differents (1, 0.5 et 0.25)
+
+# Définir une fonction pour vérifier les conditions
+check_conditions <- function(df) {
+  kinship_1_data <- subset(df, kinship == 1) # on va filtrer les données que pour kinship = 1
+  # Vérifier si kindegree prend au moins une fois les valeurs 0.25, 0.5 et 1
+  contains_025 <- 0.25 %in% kinship_1_data$kindegree
+  contains_05 <- 0.5 %in% kinship_1_data$kindegree
+  contains_1 <- 1 %in% kinship_1_data$kindegree
+  # Renvoyer TRUE si toutes les conditions sont remplies, sinon FALSE
+  return(contains_025 & contains_05 & contains_1)
+}
+# Filtrer la liste all_training_sets selon les conditions
+filtered_training_sets <- all_training_sets[sapply(all_training_sets, check_conditions)]
+
+## Maintenant, filtered_training_sets contient tous les dataframes qu'on peut potentiellement utiliser
+
+
+### 4. Exportation de tous les training sets
+
+# on exporte tous les training sets en xlsx
 chemin <- "D:/Stage M2 CdP/Kinship/Training sets/"
-for (i in 1:length(all_training_sets)) {
+for (i in 1:length(filtered_training_sets)) {
   nom_fichier <- paste0("training_set_", i, ".xlsx")
   chemin_fichier <- file.path(chemin, nom_fichier)
-  write.xlsx(all_training_sets[[i]], file = chemin_fichier)
+  write.xlsx(filtered_training_sets[[i]], file = chemin_fichier)
 }
 
 
