@@ -8,11 +8,13 @@ try(dev.off(),silent=TRUE)
 install.packages("readxl")
 install.packages("arrangements")
 install.packages("tidyr")
+install.packages("dplyr")
 install.packages("openxlsx")
 
 library(readxl)
 library(arrangements)
 library(tidyr)
+library(dplyr)
 library(openxlsx) # pour exporter un tableau dans R en tableau excel
 
 # Fannie
@@ -27,8 +29,8 @@ View(data)
 # Ce code est pour l'instant divisé en 4 parties :
 # 1ere partie : Création d'un seul training set à partir d'une sélection de 3 paires de non kin
 # 2eme partie : Création d'un seul training set à partir d'une sélection de 3 paires de kin
-# 3eme partie : Tentative d'évaluation de la qualité du training set, mais loin d'être aboutit
-# 4eme partie : Création de tous les training sets possibles et utilisables
+# 3eme partie : Création de tous les training sets possibles et utilisables
+# 4eme partie : Evaluation de la qualité des training sets (pour le moment uniquement via le kinship)
 
 #######################################################
 ##### Partie 1 : Création d'un seul training set à partir d'une sélection de 3 paires de non kin
@@ -154,42 +156,8 @@ View(training_set)
 
 write.xlsx(training_set, "D:/Stage M2 CdP/Kinship/Training sets/Training_Set_test2.xlsx") # exporte le training set qui vient d'être généré
 
-############################################################
-##### Partie 3 : Tentative d'évaluation de la qualité du training set, mais loin d'être aboutit
-
-### Travail sur les individus du training set généré
-## NON ABOUTI
-
-tot_ind_kinship_1 <- list(id=c(sample_kinship_1$id1, sample_kinship_1$id2))
-tot_ind_kinship_0 <- list(id=c(sample_kinship_0$id1, sample_kinship_0$id2))
-ind_counts_kinship_0 <- table(tot_ind_kinship_0$id)
-ind_counts_kinship_0 <- as.data.frame(ind_counts_kinship_0)
-colnames(ind_counts_kinship_0) <- c("id","score_nonkin")
-ind_counts_kinship_1 <- table(tot_ind_kinship_1$id)
-ind_counts_kinship_1 <- as.data.frame(ind_counts_kinship_1) 
-colnames(ind_counts_kinship_1) <- c("id","score_kin")
-
-ind_training_set<-merge(ind_counts_kinship_0,ind_counts_kinship_1,by="id") 
-(nid_training_set<-length(ind_training_set$id)) # nombre d'individus présents dans le training set
-
-ind_training_set$score_id <- ind_training_set$score_kin-ind_training_set$score_nonkin
-####
-
-(score_nid<-(length(ind_training_set$id)/n)) # nombre d'individus / n -> plus c'est petit, mieux c'est
-(quality<-sum(abs(ind_training_set$score_id)))
-
-tab_training_set <- data.frame(training_set_id="test1",score_nid,quality) 
-tab_training_set
-
-tab_tot_training_sets <- read_excel("D:/Stage M2 CdP/Kinship/tab_tot_training_sets.xlsx")
-View(tab_tot_training_sets)
-
-write.xlsx(tab_training_sets, "D:/Stage M2 CdP/Kinship/tab_training_sets.xlsx") # exporte le tableau des training sets
-
-
-
 ###############################################################################
-##### Partie 4 : Création de tous les training sets possibles et utilisables
+##### Partie 3 : Création de tous les training sets possibles et utilisables
 
 # Fannie
 data <- read_excel("C:/Users/Fannie Beurrier/Documents/Stage M2 CdP/Kinship/Tableau Paires.xlsx", 
@@ -489,12 +457,128 @@ for (i in 1:length(filtered_training_sets)) {
   write.xlsx(filtered_training_sets[[i]], file = chemin_fichier)
 }
 
+#######################################################
 
+##### Partie 4 : Evaluation de la qualité des sets de training
 
+### 1. Evaluation de la qualité en fonction du kinship
 
+# D'abord, il faut faire toutes les combinaisons de paires de kin et nk possibles pour chaque training set
 
+# Définir une fonction pour générer les combinaisons de pair_id entre k0 et k1
+generate_combinations <- function(df) {
+  # Filtrer les données pour k0 et k1
+  k0 <- subset(df, kinship == 0)
+  k1 <- subset(df, kinship == 1)
+  # Extraire les valeurs uniques de pair_id pour k0 et k1
+  k0_p_id <- unique(k0$pair_id)
+  k1_p_id <- unique(k1$pair_id)
+  # Générer toutes les combinaisons possibles de pair_id entre k0 et k1
+  combinations <- expand.grid(k0_p_id, k1_p_id)
+  colnames(combinations) <- c("pair_id_k0", "pair_id_k1")
+  combinations$combi_id <- apply(combinations[1:2], 1, function(x) paste(x, collapse = "-")) # création de la variable pair_id pour attribuer une identité à la paire
+  combinations$id1<-NA
+  combinations$id2<-NA
+  combinations$id3<-NA
+  combinations$id4<-NA
+  combinations$kinship_p1<-NA  
+  combinations$kinship_p2<-NA  
+  combinations$kindegree_p1<-NA 
+  combinations$kindegree_p2<-NA
+  return(combinations)
+}
+# Appliquer la fonction à chaque dataframe de filtered_training_sets
+all_combinations <- lapply(filtered_training_sets, generate_combinations)
 
+# Maintenant, all_combinations contient une liste de dataframes, chaque dataframe représentant toutes les combinaisons possibles de pair_id entre k0 et k1 pour un dataframe de filtered_training_sets.
 
+# Remplissage des tableaux de combinaisons de paires de nonkin (type id1, id2, kinship, kindegree, pair_id) à partir des données initiales
+# prend un peu de temps
+for(i in 1:length(all_combinations)) {
+  for(x in 1:nrow(all_combinations[[i]])) {
+    pair0 <- all_combinations[[i]]$pair_id_k0[x]
+    pair1 <- all_combinations[[i]]$pair_id_k1[x]
+    loc0 <- which(all_combinations[[i]]$pair_id_k0[x]==data$pair_id)# donne la ligne dans data où la pair_id_k0 est la même que la ligne x du all_combinations i
+    loc1 <- which(all_combinations[[i]]$pair_id_k1[x]==data$pair_id)# donne la ligne dans data où la pair_id_k1 est la même que la ligne x du all_combinations i
+    if(pair0 == data$pair_id[loc0]) {
+      kinship_p1 <- data$kinship[data$pair_id == pair0] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
+      kindegree_p1 <- data$kindegree[data$pair_id == pair0]
+      id1 <- data$id1[data$pair_id == pair0]
+      id2 <- data$id2[data$pair_id == pair0]
+      all_combinations[[i]]$kinship_p1[x] <- kinship_p1 # pour chaque variable, restitution des valeurs des objets définis dans le all_combinations i à la ligne x
+      all_combinations[[i]]$kindegree_p1[x] <- kindegree_p1
+      all_combinations[[i]]$id1[x] <- id1
+      all_combinations[[i]]$id2[x] <- id2
+    }
+    if(pair1 == data$pair_id[loc1]) {
+        kinship_p2 <- data$kinship[data$pair_id == pair1] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
+        kindegree_p2 <- data$kindegree[data$pair_id == pair1]
+        id1 <- data$id1[data$pair_id == pair1]
+        id2 <- data$id2[data$pair_id == pair1]
+        all_combinations[[i]]$kinship_p2[x] <- kinship_p2 # pour chaque variable, restitution des valeurs des objets définis dans le all_combinations i à la ligne x
+        all_combinations[[i]]$kindegree_p2[x] <- kindegree_p2
+        all_combinations[[i]]$id3[x] <- id1
+        all_combinations[[i]]$id4[x] <- id2
+    }
+  }
+}
+# tous les dataframes sont remplis
+
+# Parcourir chaque dataframe de all_combinations
+# prend du temps
+for (i in seq_along(all_combinations)) { # pour chaque dataframe
+  m <- n*n # pour considérer toutes les lignes représentant les différentes combinaisons mais pas les lignes qu'on ajoute en plus par la suite
+  df <- all_combinations[[i]]
+  unique_individuals <- sort(unique(c(df$id1, df$id2))) # liste des individus présents (OSEF de id3 et id4 car dans tous les cas, ils correspondent à id1 et id2)
+  # On crée un nouveau dataframe "df_ind_count" dans lequel on compte le nombre de fois où l'individu apparaît dans le training set pour calculer son score (plus tard)
+  liste_individuals <- list(individuals=c(df$id1, df$id2, df$id3, df$id4))
+  ind_counts <- table(liste_individuals$individuals) # on compte le nombre de fois que chaque individu est présent en tant que kin
+  df_ind_counts <- as.data.frame(ind_counts)
+  colnames(df_ind_counts) <- c("ID", "Freq")
+  df_ind_counts <- df_ind_counts[order(as.character(df_ind_counts$ID)), ] # organisation par ordre alphabétique (pour une vérification plus facile)
+  # Ajouter une nouvelle ligne "total" avec des valeurs NA au dataframe
+  total_row <- data.frame(matrix(NA, ncol = ncol(df), nrow = 1))
+  colnames(total_row) <- colnames(df)
+  rownames(total_row) <- "total"
+  df <- rbind(df, total_row)
+  # Créer des variables pour chaque individu pour calculer leur score par la suite
+  for (individual in unique_individuals) {
+    df[[individual]] <- NA
+    # Dans chaque variable df[[individual]], on va mettre 1 quand l'individu est dans la paire "gagnante" (kin) et 0 si il est dans la paire "perdante" (nk)
+    for (x in 1:m){ # pour que la derniere ligne "total" ne soit pas concernee
+      ifelse (df$kindegree_p2[x] > df$kindegree_p1[x] & c(individual %in% df$id3[x] || individual %in% df$id4[x]),df[[individual]][x] <- 1, df[[individual]][x] <- 0 )}
+    # Parcourir les colonnes de df qui représentent un individu (donc à partir de 12)
+    for (y in 12:ncol(df)) {
+      # On va compléter la ligne "total" pour avoir le score de chaque individu. Autrement dit, le nombre de fois où l'individu gagne divisé par le nombre de fois où il apparaît. Plus c'est proche de 0.5, mieux c'est car cela veut dire qu'il apparaît autant de fois en tant que gagnant que perdant
+      col_name <- names(df)[y] # Obtenir le nom de la colonne
+      somme <- sum(df[[y]][1:m]) # Somme des 1 (donc total du nombre de fois où l'individu "gagne")
+      # Si le nom de la colonne correspond à une valeur dans df_ind_counts$ID,
+      if (col_name %in% df_ind_counts$ID) {
+        # Récupérer l'index correspondant à l'ID dans df_ind_counts
+        idx <- which(df_ind_counts$ID == col_name) # on récupère l'index correspondant à l'ID dans df_ind_counts
+        freq <- df_ind_counts$Freq[idx] # on attribue la fréquence (df_ind_counts$Freq) à l'objet "freq"
+        # on calcule le score pour chaque individu dans df
+        df["total", y] <- somme/freq
+      }
+    }
+  }
+  # Ajouter une nouvelle ligne "variance" avec des valeurs NA au dataframe
+  variance_row <- data.frame(matrix(NA, ncol = ncol(df), nrow = 1))
+  colnames(variance_row) <- colnames(df)
+  rownames(variance_row) <- "variance"
+  df <- rbind(df, variance_row)
+  for (z in 12:ncol(df)) {
+    df["variance",z] <- abs(df["total", z]-0.5)}
+  # Calculer la valeur maximale des valeurs dans les colonnes 12 à la dernière colonne
+  max_value <- max(apply(df["variance", 12:ncol(df)], 1, max, na.rm = TRUE))
+  # Ajouter une nouvelle colonne "variance_max" avec des valeurs NA au dataframe
+  df$variance_max <- NA
+  # Assigner la valeur maximale à la cellule "variance_max" dans la ligne "variance"
+  df["variance", "variance_max"] <- max_value
+  
+  # Mettre à jour le dataframe dans la liste
+  all_combinations[[i]] <- df
+}
 
 
 
