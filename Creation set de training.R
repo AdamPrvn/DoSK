@@ -165,7 +165,8 @@ data <- read_excel("C:/Users/Fannie Beurrier/Documents/Stage M2 CdP/Kinship/Tabl
 View(data)
 
 ## Attention : la variable "kindegree" ne correspond pas au réel kindegree des paires, il permet de différencier les liens de parenté de la facon suivante:
-# 1 = mother-child ; 0.5 = full-siblings ; 0.25 = maternal half-siblings
+# Pour les kin : 1 = mother-child ; 0.5 = full-siblings ; 0.25 = maternal half-siblings
+# Pour les nk : 0.0625 = cousins ; 0 = au-dela de cousins
 
 ### 1. Cleaning et vérifications
 n=3 # on veut n paires de kin VS n paires de non kin (abrégé nk)
@@ -180,7 +181,7 @@ kinship_0$possibility<-"no option" # dans le subset nk, on remplit la var possib
 ## on vérifie que tous les individus présents dans nk le sont aussi dans kin
 individuals_kinship_0 <- sort(unique(c(kinship_0$id1, kinship_0$id2)))
 individuals_kinship_1 <- sort(unique(c(kinship_1$id1, kinship_1$id2)))
-identical(individuals_kinship_0, individuals_kinship_1)
+identical(individuals_kinship_0, individuals_kinship_1) # yoh n'est présente que dans les kin
 
 
 ### 2. Création de tous les dataframes de combinaisons de paires de nk possibles
@@ -200,11 +201,22 @@ transformer_en_dataframe <- function(row) {
   df$id2<-NA
   df$kinship<-NA  
   df$kindegree<-NA
+  df$age_id1<-NA
+  df$age_id2<-NA
+  df$age_dif<-NA
+  df$age_mean<-NA
+  df$sex_id1<-NA
+  df$sex_id2<-NA
+  df$sex_dif<-NA
+#  df$rank_id1<-NA
+#  df$rank_id2<-NA
+#  df$rank_dif<-NA
+#  df$rank_mean<-NA
   df$possibility<-NA
   return(df)
 }
 # Application de la fonction à chaque combinaisons de paires de nk
-# prend bcp de temps
+# prend beaucoup de temps
 nouveaux_dataframes <- lapply(1:nrow(n_combinaisons_kinship_0), function(i) transformer_en_dataframe(n_combinaisons_kinship_0[i, ]))
 View(nouveaux_dataframes)
 
@@ -217,11 +229,33 @@ for(i in 1:length(nouveaux_dataframes)) {
     if(pair == kinship_0$pair_id[loc]) {
       kinship <- kinship_0$kinship[kinship_0$pair_id == pair] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
       kindegree <- kinship_0$kindegree[kinship_0$pair_id == pair]
+      age_id1 <- kinship_0$age_id1[kinship_0$pair_id == pair]
+      age_id2 <- kinship_0$age_id2[kinship_0$pair_id == pair]
+      age_dif <- kinship_0$age_dif[kinship_0$pair_id == pair]
+      age_mean <- kinship_0$age_mean[kinship_0$pair_id == pair]
+      sex_id1 <- kinship_0$sex_id1[kinship_0$pair_id == pair]
+      sex_id2 <- kinship_0$sex_id2[kinship_0$pair_id == pair]
+      sex_dif <- kinship_0$sex_dif[kinship_0$pair_id == pair]
+#      rank_id1 <- kinship_0$rank_id1[kinship_0$pair_id == pair]
+#      rank_id2 <- kinship_0$rank_id2[kinship_0$pair_id == pair]
+#      rank_dif <- kinship_0$rank_dif[kinship_0$pair_id == pair]
+#      rank_mean <- kinship_0$rank_mean[kinship_0$pair_id == pair]
       possibility <- kinship_0$possibility[kinship_0$pair_id == pair]
       id1 <- kinship_0$id1[kinship_0$pair_id == pair]
       id2 <- kinship_0$id2[kinship_0$pair_id == pair]
       nouveaux_dataframes[[i]]$kinship[x] <- kinship # pour chaque variable, restitution des valeurs des objets définis dans le nouveaux_dataframes i à la ligne x
       nouveaux_dataframes[[i]]$kindegree[x] <- kindegree
+      nouveaux_dataframes[[i]]$age_id1[x] <- age_id1
+      nouveaux_dataframes[[i]]$age_id2[x] <- age_id2
+      nouveaux_dataframes[[i]]$age_dif[x] <- age_dif
+      nouveaux_dataframes[[i]]$age_mean[x] <- age_mean
+      nouveaux_dataframes[[i]]$sex_id1[x] <- sex_id1
+      nouveaux_dataframes[[i]]$sex_id2[x] <- sex_id2
+      nouveaux_dataframes[[i]]$sex_dif[x] <- sex_dif
+#      nouveaux_dataframes[[i]]$rank_id1[x] <- rank_id1
+#      nouveaux_dataframes[[i]]$rank_id2[x] <- rank_id2
+#      nouveaux_dataframes[[i]]$rank_dif[x] <- rank_dif
+#      nouveaux_dataframes[[i]]$rank_mean[x] <- rank_mean
       nouveaux_dataframes[[i]]$possibility[x] <- possibility
       nouveaux_dataframes[[i]]$id1[x] <- id1
       nouveaux_dataframes[[i]]$id2[x] <- id2
@@ -373,11 +407,33 @@ for(y in 1:length(df_2n_no_moins)) {
       if(pair == df_2n_no_moins_option$pair_id[loc]) {
         kinship <- df_2n_no_moins_option$kinship[df_2n_no_moins_option$pair_id == pair]
         kindegree <- df_2n_no_moins_option$kindegree[df_2n_no_moins_option$pair_id == pair]
+        age_id1 <- df_2n_no_moins_option$age_id1[df_2n_no_moins_option$pair_id == pair]
+        age_id2 <- df_2n_no_moins_option$age_id2[df_2n_no_moins_option$pair_id == pair]
+        age_dif <- df_2n_no_moins_option$age_dif[df_2n_no_moins_option$pair_id == pair]
+        age_mean <- df_2n_no_moins_option$age_mean[df_2n_no_moins_option$pair_id == pair]
+        sex_id1 <- df_2n_no_moins_option$sex_id1[df_2n_no_moins_option$pair_id == pair]
+        sex_id2 <- df_2n_no_moins_option$sex_id2[df_2n_no_moins_option$pair_id == pair]
+        sex_dif <- df_2n_no_moins_option$sex_dif[df_2n_no_moins_option$pair_id == pair]
+#        rank_id1 <- df_2n_no_moins_option$rank_dif[df_2n_no_moins_option$pair_id == pair]
+#        rank_id2 <- df_2n_no_moins_option$rank_dif[df_2n_no_moins_option$pair_id == pair]
+#        rank_dif <- df_2n_no_moins_option$rank_dif[df_2n_no_moins_option$pair_id == pair]
+#        rank_mean <- df_2n_no_moins_option$rank_mean[df_2n_no_moins_option$pair_id == pair]
         possibility <- df_2n_no_moins_option$possibility[df_2n_no_moins_option$pair_id == pair]
         id1 <- df_2n_no_moins_option$id1[df_2n_no_moins_option$pair_id == pair]
         id2 <- df_2n_no_moins_option$id2[df_2n_no_moins_option$pair_id == pair]
         new_df_o[[i]]$kinship[x] <- kinship
         new_df_o[[i]]$kindegree[x] <- kindegree
+        new_df_o[[i]]$age_id1[x] <- age_id1
+        new_df_o[[i]]$age_id2[x] <- age_id2
+        new_df_o[[i]]$age_dif[x] <- age_dif
+        new_df_o[[i]]$age_mean[x] <- age_mean
+        new_df_o[[i]]$sex_id1[x] <- sex_id1
+        new_df_o[[i]]$sex_id2[x] <- sex_id2
+        new_df_o[[i]]$sex_dif[x] <- sex_dif
+#        new_df_o[[i]]$rank_id1[x] <- rank_id1
+#        new_df_o[[i]]$rank_id2[x] <- rank_id2
+#        new_df_o[[i]]$rank_dif[x] <- rank_dif
+#        new_df_o[[i]]$rank_mean[x] <- rank_mean
         new_df_o[[i]]$possibility[x] <- possibility
         new_df_o[[i]]$id1[x] <- id1
         new_df_o[[i]]$id2[x] <- id2
@@ -429,17 +485,22 @@ all_training_sets <- c(dataframes_possibles_pile, df_2n_no_pile, filtered_linked
 
 
 ## 3.5 Sélection des training sets selon les critères de kindegree
-# contrainte : on veut uniquement les training sets avec les 3 kindegree differents (1, 0.5 et 0.25)
+# contrainte 1 : on veut uniquement les training sets avec les 3 kindegree differents pour les kin (1, 0.5 et 0.25)
+# contrainte 2 : on veut uniquement les training sets avec les 2 kindegree differents pour les nk (0 et 0.0625)
 
 # Définir une fonction pour vérifier les conditions
 check_conditions <- function(df) {
-  kinship_1_data <- subset(df, kinship == 1) # on va filtrer les données que pour kinship = 1
+  kinship_1_data <- subset(df, kinship == 1) # on va filtrer les données pour kinship = 1
   # Vérifier si kindegree prend au moins une fois les valeurs 0.25, 0.5 et 1
   contains_025 <- 0.25 %in% kinship_1_data$kindegree
   contains_05 <- 0.5 %in% kinship_1_data$kindegree
   contains_1 <- 1 %in% kinship_1_data$kindegree
+  kinship_0_data <- subset(df, kinship == 0) # on va filtrer les données pour kinship = 0
+  # Vérifier si kindegree prend au moins une fois les valeurs 0.0625 et 0
+  contains_00625 <- 0.0625 %in% kinship_0_data$kindegree
+  contains_0 <- 0 %in% kinship_0_data$kindegree
   # Renvoyer TRUE si toutes les conditions sont remplies, sinon FALSE
-  return(contains_025 & contains_05 & contains_1)
+  return(contains_025 & contains_05 & contains_1 & contains_0 & contains_00625)
 }
 # Filtrer la liste all_training_sets selon les conditions
 filtered_training_sets <- all_training_sets[sapply(all_training_sets, check_conditions)]
@@ -461,7 +522,7 @@ for (i in 1:length(filtered_training_sets)) {
 
 ##### Partie 4 : Evaluation de la qualité des sets de training
 
-### 1. Evaluation de la qualité en fonction du kinship
+### 1. Création des tableaux des combinaisons
 
 # D'abord, il faut faire toutes les combinaisons de paires de kin et nk possibles pour chaque training set
 
@@ -485,6 +546,16 @@ generate_combinations <- function(df) {
   combinations$kinship_p2<-NA  
   combinations$kindegree_p1<-NA 
   combinations$kindegree_p2<-NA
+  combinations$age_dif_p1<-NA
+  combinations$age_dif_p2<-NA
+  combinations$age_mean_p1<-NA
+  combinations$age_mean_p2<-NA
+  combinations$sex_dif_p1<-NA
+  combinations$sex_dif_p2<-NA
+#  combinations$rank_dif_p1<-NA
+#  combinations$rank_dif_p2<-NA
+#  combinations$rank_mean_p1<-NA
+#  combinations$rank_mean_p2<-NA
   return(combinations)
 }
 # Appliquer la fonction à chaque dataframe de filtered_training_sets
@@ -503,20 +574,40 @@ for(i in 1:length(all_combinations)) {
     if(pair0 == data$pair_id[loc0]) {
       kinship_p1 <- data$kinship[data$pair_id == pair0] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
       kindegree_p1 <- data$kindegree[data$pair_id == pair0]
+      age_dif_p1 <- data$age_dif[data$pair_id == pair0]
+      age_mean_p1 <- data$age_mean[data$pair_id == pair0]
+      sex_dif_p1 <- data$sex_dif[data$pair_id == pair0]
+#      rank_dif_p1 <- data$rank_dif[data$pair_id == pair0]
+#      rank_mean_p1 <- data$rank_mean[data$pair_id == pair0]
       id1 <- data$id1[data$pair_id == pair0]
       id2 <- data$id2[data$pair_id == pair0]
       all_combinations[[i]]$kinship_p1[x] <- kinship_p1 # pour chaque variable, restitution des valeurs des objets définis dans le all_combinations i à la ligne x
       all_combinations[[i]]$kindegree_p1[x] <- kindegree_p1
+      all_combinations[[i]]$age_dif_p1[x] <- age_dif_p1
+      all_combinations[[i]]$age_mean_p1[x] <- age_mean_p1
+      all_combinations[[i]]$sex_dif_p1[x] <- sex_dif_p1
+#      all_combinations[[i]]$rank_dif_p1[x] <- rank_dif_p1
+#      all_combinations[[i]]$rank_mean_p1[x] <- rank_mean_p1
       all_combinations[[i]]$id1[x] <- id1
       all_combinations[[i]]$id2[x] <- id2
     }
     if(pair1 == data$pair_id[loc1]) {
         kinship_p2 <- data$kinship[data$pair_id == pair1] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
         kindegree_p2 <- data$kindegree[data$pair_id == pair1]
+        age_dif_p2 <- data$age_dif[data$pair_id == pair1]
+        age_mean_p2 <- data$age_mean[data$pair_id == pair1]
+        sex_dif_p2 <- data$sex_dif[data$pair_id == pair1]
+#      rank_dif_p2 <- data$rank_dif[data$pair_id == pair1]
+#      rank_mean_p2 <- data$rank_mean[data$pair_id == pair1]
         id1 <- data$id1[data$pair_id == pair1]
         id2 <- data$id2[data$pair_id == pair1]
         all_combinations[[i]]$kinship_p2[x] <- kinship_p2 # pour chaque variable, restitution des valeurs des objets définis dans le all_combinations i à la ligne x
         all_combinations[[i]]$kindegree_p2[x] <- kindegree_p2
+        all_combinations[[i]]$age_dif_p2[x] <- age_dif_p2
+        all_combinations[[i]]$age_mean_p2[x] <- age_mean_p2
+        all_combinations[[i]]$sex_dif_p2[x] <- sex_dif_p2
+#      all_combinations[[i]]$rank_dif_p2[x] <- rank_dif_p2
+#      all_combinations[[i]]$rank_mean_p2[x] <- rank_mean_p2
         all_combinations[[i]]$id3[x] <- id1
         all_combinations[[i]]$id4[x] <- id2
     }
@@ -524,7 +615,9 @@ for(i in 1:length(all_combinations)) {
 }
 # tous les dataframes sont remplis
 
-# Parcourir chaque dataframe de all_combinations
+### 2. Evaluation de la qualité en fonction du kinship
+
+# Parcourir chaque dataframe de all_combinations (OSEF car on va choisir que les dataset avec un nombre d'individus = 6 pour que chaque individu soit présent de manière équilibrée dans les kin et nk (pour n=3))
 # prend du temps
 for (i in seq_along(all_combinations)) { # pour chaque dataframe
   m <- n*n # pour considérer toutes les lignes représentant les différentes combinaisons mais pas les lignes qu'on ajoute en plus par la suite
@@ -569,8 +662,8 @@ for (i in seq_along(all_combinations)) { # pour chaque dataframe
   df <- rbind(df, variance_row)
   for (z in 12:ncol(df)) {
     df["variance",z] <- abs(df["total", z]-0.5)}
-  # Calculer la valeur maximale des valeurs dans les colonnes 12 à la dernière colonne
-  max_value <- max(apply(df["variance", 12:ncol(df)], 1, max, na.rm = TRUE))
+  # Calculer la valeur maximale des valeurs dans les colonnes 14 à la dernière colonne
+  max_value <- max(apply(df["variance", 14:ncol(df)], 1, max, na.rm = TRUE))
   # Ajouter une nouvelle colonne "variance_max" avec des valeurs NA au dataframe
   df$variance_max <- NA
   # Assigner la valeur maximale à la cellule "variance_max" dans la ligne "variance"
@@ -579,6 +672,231 @@ for (i in seq_along(all_combinations)) { # pour chaque dataframe
   # Mettre à jour le dataframe dans la liste
   all_combinations[[i]] <- df
 }
+
+### Comme il y a soit 5, soit 6 individus qui composent les training set (si n=3), on ne va sélectionner que les training set avec 6 individus pour que chaque individu soit équilibré et apparaisse autant de fois dans kin que dans nk.
+
+# Création d'une fonction pour conserver uniquement les df où la liste des individus est égale à 6
+filter<-function(df) {
+  ind <- unique(c(df$id1, df$id2))
+  length(ind)==6
+}
+# Application de la fonction
+training_sets_equi <- lapply(filtered_training_sets, function(df) {
+  if(filter(df)) {
+    return(df)
+  }
+})
+training_sets_equi <- training_sets_equi[!sapply(training_sets_equi, is.null)] # Supprimer les éléments vides de la liste
+# je ne sais pas comment vérifier s'il a bien fait ça
+
+
+### 3. Evaluation de la qualité en fonction du sexe
+
+## Retirer les df où la liste des sex_dif entre kin et nk est différente
+# Création d'une fonction pour retirer le df quand les deux listes ne sont pas identiques
+filter_and_check<-function(df) {
+  k0 <- subset(df, kinship == "0")
+  k1 <- subset(df, kinship == "1")
+  sex_dif_k0 <- sort(unique(k0$sex_dif))
+  sex_dif_k1 <- sort(unique(k1$sex_dif))
+  identical(sex_dif_k0, sex_dif_k1)
+}
+# Application de la fonction
+filtered_training_sets_equi <- lapply(training_sets_equi, function(df) {
+  if(filter_and_check(df)) {
+    return(df)
+  }
+})
+filtered_training_sets_equi <- filtered_training_sets_equi[!sapply(filtered_training_sets_equi, is.null)] # Supprimer les éléments vides de la liste
+# je ne sais pas comment vérifier s'il a bien fait ça
+
+# On peut regarder nombre de mâles contenus pour chaque df
+for(i in 1:length(filtered_training_sets_equi)) {
+  sum_sex <- sum(c(filtered_training_sets_equi[[i]]$sex_id1, filtered_training_sets_equi[[i]]$sex_id2))
+  print(c(i,sum_sex/2)) # tous les indices des df et le nombre de mâles dans le set de training sont affichés
+}
+
+# Si on veut qu'il y ait au moins un mâle et une femelle dans le set de training, ce qui permet d'avoir la présence des deux sexes
+filter_sex<-function(df) {
+  sum_sex <- sum(c(df$sex_id1, df$sex_id2))
+  nb_males <- sum_sex/2
+  between(nb_males,1,5)
+}
+# Application de la fonction
+filtered_training_sets_sex <- lapply(filtered_training_sets_equi, function(df) {
+  if(filter_sex(df)) {
+    return(df)
+  }
+})
+filtered_training_sets_sex <- filtered_training_sets_sex[!sapply(filtered_training_sets_sex, is.null)] # Supprimer les éléments vides de la liste
+
+# On peut regarder nombre de mâles contenus pour chaque df
+for(i in 1:length(filtered_training_sets_sex)) {
+  sum_sex <- sum(c(filtered_training_sets_sex[[i]]$sex_id1, filtered_training_sets_sex[[i]]$sex_id2))
+  print(c(i,sum_sex/2)) # tous les indices des df et le nombre de mâles dans le set de training sont affichés
+}
+
+## Dans l'idéal on ferait ce qui suit mais ça réduit beaucoup trop le nombre de training sets et certains individus sont constamment dedans
+# Si on veut qu'il y ait au moins un paire de mâles, une paire de femelle et une paire mixte pour les kin et nk
+# Définir une fonction pour vérifier les conditions
+check_conditions <- function(df) {
+  # Vérifier si sex_dif prend au moins une fois les valeurs 0, 0.5 et 1
+  contains_0 <- 0 %in% df$sex_dif
+  contains_05 <- 0.5 %in% df$sex_dif
+  contains_1 <- 1 %in% df$sex_dif
+  # Renvoyer TRUE si toutes les conditions sont remplies, sinon FALSE
+  return(contains_0 & contains_05 & contains_1)
+}
+# Filtrer la liste filtered_training_sets_equi selon les conditions
+filtered_training_sets_sex <- filtered_training_sets_equi[sapply(filtered_training_sets_equi, check_conditions)]
+
+# On peut regarder la liste des individus pour chaque df, pour voir si des individus sont constamment présents dans les df
+for(i in 1:length(filtered_training_sets_sex)) {
+  list_ind <- sort(unique(c(filtered_training_sets_sex[[i]]$id1, filtered_training_sets_sex[[i]]$id2)))
+  print(c(i,list_ind)) # tous les indices des df et la liste des individus dans le set de training sont affichés
+}
+
+
+### 4. Evaluation de la qualité en fonction de l'âge
+# On veut que la moyenne des différences d'âge pour les kin et nk soit la plus proche (donc on veut pas que le singe puisse choisir en fonction de la dif d'âge entre les paires (par ex. choisir toujours la paire avec la plus grande dif d'âge))
+# On veut que la moyenne des âges moyens pour les kin et nk soit la plus proche (donc on veut pas que le singe puisse choisir en fonction de la moy d'âge des paires (par ex. choisir toujours la paire la plus jeune en moyenne))
+
+# Parcourir chaque dataframe de filtered_training_sets_sex
+for (i in seq_along(filtered_training_sets_sex)) { # pour chaque dataframe
+  m <- 2*n # pour considérer toutes les lignes représentant les différentes combinaisons mais pas les lignes qu'on ajoute en plus par la suite
+  df <- filtered_training_sets_sex[[i]]
+  k0 <- subset(df, kinship == "0")
+  k1 <- subset(df, kinship == "1")
+  # Ajouter 3 nouvelles lignes "age_k0", "age_k1" & "dif_age" avec des valeurs NA au dataframe
+  age_row <- data.frame(matrix(NA, ncol = ncol(df), nrow = 3))
+  colnames(age_row) <- colnames(df)
+  rownames(age_row) <- c("age_k0","age_k1","dif_age")
+  df <- rbind(df, age_row)
+  df["age_k0","age_dif"] <- mean(k0$age_dif)
+  df["age_k1","age_dif"] <- mean(k1$age_dif)
+  df["dif_age","age_dif"] <- abs(df["age_k0","age_dif"]-df["age_k1","age_dif"]) # donne la différence (valeur absolue), entre les kin et nk, de la moyenne des différences d'âge
+  df["age_k0","age_mean"] <- mean(k0$age_mean)
+  df["age_k1","age_mean"] <- mean(k1$age_mean)
+  df["dif_age","age_mean"] <- abs(df["age_k0","age_mean"]-df["age_k1","age_mean"]) # donne la différence (valeur absolue), entre les kin et nk, de la moyenne des moyennes d'âge
+  # Mettre à jour le dataframe dans la liste
+  filtered_training_sets_sex[[i]] <- df
+}
+
+# Si on veut que les deux différences calculées soient inférieures à 1 an d'écart
+# Définir une fonction pour vérifier les conditions
+check_conditions <- function(df) {
+  # Vérifier si les deux différences sont < 1
+  condition1 <- df["dif_age","age_dif"] < 1
+  condition2 <- df["dif_age","age_mean"] < 1
+  # Renvoyer TRUE si toutes les conditions sont remplies, sinon FALSE
+  return(condition1 & condition2)
+}
+# Filtrer la liste filtered_training_sets_sex selon les conditions
+filtered_training_sets_age <- filtered_training_sets_sex[sapply(filtered_training_sets_sex, check_conditions)]
+
+
+## Autre manière de faire
+all_combinations <- lapply(filtered_training_sets_sex, generate_combinations)
+# Remplissage des tableaux de combinaisons de paires de nonkin (type id1, id2, kinship, kindegree, pair_id) à partir des données initiales
+# prend un peu de temps
+for(i in 1:length(all_combinations)) {
+  for(x in 1:nrow(all_combinations[[i]])) {
+    pair0 <- all_combinations[[i]]$pair_id_k0[x]
+    pair1 <- all_combinations[[i]]$pair_id_k1[x]
+    loc0 <- which(all_combinations[[i]]$pair_id_k0[x]==data$pair_id)# donne la ligne dans data où la pair_id_k0 est la même que la ligne x du all_combinations i
+    loc1 <- which(all_combinations[[i]]$pair_id_k1[x]==data$pair_id)# donne la ligne dans data où la pair_id_k1 est la même que la ligne x du all_combinations i
+    if(pair0 == data$pair_id[loc0]) {
+      kinship_p1 <- data$kinship[data$pair_id == pair0] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
+      kindegree_p1 <- data$kindegree[data$pair_id == pair0]
+      age_dif_p1 <- data$age_dif[data$pair_id == pair0]
+      age_mean_p1 <- data$age_mean[data$pair_id == pair0]
+      sex_dif_p1 <- data$sex_dif[data$pair_id == pair0]
+      #      rank_dif_p1 <- data$rank_dif[data$pair_id == pair0]
+      #      rank_mean_p1 <- data$rank_mean[data$pair_id == pair0]
+      id1 <- data$id1[data$pair_id == pair0]
+      id2 <- data$id2[data$pair_id == pair0]
+      all_combinations[[i]]$kinship_p1[x] <- kinship_p1 # pour chaque variable, restitution des valeurs des objets définis dans le all_combinations i à la ligne x
+      all_combinations[[i]]$kindegree_p1[x] <- kindegree_p1
+      all_combinations[[i]]$age_dif_p1[x] <- age_dif_p1
+      all_combinations[[i]]$age_mean_p1[x] <- age_mean_p1
+      all_combinations[[i]]$sex_dif_p1[x] <- sex_dif_p1
+      #      all_combinations[[i]]$rank_dif_p1[x] <- rank_dif_p1
+      #      all_combinations[[i]]$rank_mean_p1[x] <- rank_mean_p1
+      all_combinations[[i]]$id1[x] <- id1
+      all_combinations[[i]]$id2[x] <- id2
+    }
+    if(pair1 == data$pair_id[loc1]) {
+      kinship_p2 <- data$kinship[data$pair_id == pair1] # pour chaque variable, attribution de la valeur de la variable à un objet (ici appelé "kinship")
+      kindegree_p2 <- data$kindegree[data$pair_id == pair1]
+      age_dif_p2 <- data$age_dif[data$pair_id == pair1]
+      age_mean_p2 <- data$age_mean[data$pair_id == pair1]
+      sex_dif_p2 <- data$sex_dif[data$pair_id == pair1]
+      #      rank_dif_p2 <- data$rank_dif[data$pair_id == pair1]
+      #      rank_mean_p2 <- data$rank_mean[data$pair_id == pair1]
+      id1 <- data$id1[data$pair_id == pair1]
+      id2 <- data$id2[data$pair_id == pair1]
+      all_combinations[[i]]$kinship_p2[x] <- kinship_p2 # pour chaque variable, restitution des valeurs des objets définis dans le all_combinations i à la ligne x
+      all_combinations[[i]]$kindegree_p2[x] <- kindegree_p2
+      all_combinations[[i]]$age_dif_p2[x] <- age_dif_p2
+      all_combinations[[i]]$age_mean_p2[x] <- age_mean_p2
+      all_combinations[[i]]$sex_dif_p2[x] <- sex_dif_p2
+      #      all_combinations[[i]]$rank_dif_p2[x] <- rank_dif_p2
+      #      all_combinations[[i]]$rank_mean_p2[x] <- rank_mean_p2
+      all_combinations[[i]]$id3[x] <- id1
+      all_combinations[[i]]$id4[x] <- id2
+    }
+  }
+}
+# tous les dataframes sont remplis
+
+## On veut que la règle testée ne puisse pas se confondre avec la règle du kinship
+# selon la règle du choix de la paire ayant la plus grande différence d'âge
+for (i in seq_along(all_combinations)) { # pour chaque dataframe
+  df <- all_combinations[[i]]
+  # Ajouter 2 nouvelles colonnes "test_p1" & "test_p2" avec des valeurs NA au dataframe
+  test_col <- data.frame(matrix(NA, ncol = 2, nrow = nrow(df)))
+  colnames(test_col) <- c("test_p1", "test_p2")
+  rownames(test_col) <- rownames(df)
+  df <- cbind(df, test_col)
+  for (x in 1:nrow(df)){
+    ifelse(df$age_dif_p2[x] > df$age_dif_p1[x], df$test_p2[x] <- 1, df$test_p2[x] <- 0)
+    ifelse(df$age_dif_p2[x] < df$age_dif_p1[x], df$test_p1[x] <- 1, df$test_p1[x] <- 0)
+  }
+  # Mettre à jour le dataframe dans la liste
+  all_combinations[[i]] <- df
+}
+
+# l'idée, c'est de comparer les colonnes "test" avec les colonnes "kinship". Il faut qu'elles soient différentes pour être sûr que la règle testée ne puisse pas être utilisée à la place de la règle du kinship.
+for (i in seq_along(all_combinations)) { # pour chaque dataframe
+  m <- n*n
+  df <- all_combinations[[i]]
+  # Ajouter une nouvelle ligne "total" avec des valeurs NA au dataframe
+  total_row <- data.frame(matrix(NA, ncol = ncol(df), nrow = 1))
+  colnames(total_row) <- colnames(df)
+  rownames(total_row) <- "total"
+  df <- rbind(df, total_row)
+  df["total","kinship_p2"] <- sum(df$kinship_p2[1:m]) # donne la somme des 1 dans kinship_p2
+  df["total","test_p2"] <- sum(df$test_p2[1:m]) # donne la somme des 1 dans test_p2
+  # Ajouter une nouvelle colonne "similarity" avec des valeurs NA au dataframe
+  similarity_col <- data.frame(matrix(NA, ncol = 1, nrow = nrow(df)))
+  rownames(similarity_col) <- rownames(df)
+  colnames(similarity_col) <- "similarity_p2"
+  df <- cbind(df, similarity_col)
+  df["total","similarity_p2"] <- df["total","test_p2"]*100/df["total","kinship_p2"] # donne le pourcentage de similarité de test_p2 par rapport à kinship_p2 (qui est la paire de kin). Plus c'est proche de 0, mieux c'est.
+  # Mettre à jour le dataframe dans la liste
+  all_combinations[[i]] <- df
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
